@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Calculadora</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #f0f2f5;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    .calculator {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      width: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    h1 { font-size: 1.1rem; color: #333; text-align: center; }
+
+    #display {
+      width: 100%;
+      padding: 12px;
+      font-size: 1.4rem;
+      text-align: right;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      outline: none;
+      background: #fafafa;
+      cursor: default;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    button {
+      padding: 16px;
+      font-size: 1.2rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    button:active { transform: scale(0.96); }
+
+    .btn-num  { background: #e8f0fe; color: #1a73e8; }
+    .btn-num:hover  { background: #d2e3fc; }
+
+    .btn-op   { background: #fce8e6; color: #d93025; }
+    .btn-op:hover   { background: #f5c6c3; }
+
+    .btn-equal { background: #1a73e8; color: white; grid-column: span 3; }
+    .btn-equal:hover { background: #1557b0; }
+
+    .btn-clear { background: #e6f4ea; color: #188038; grid-column: span 3; }
+    .btn-clear:hover { background: #ceead6; }
+
+    #resultado {
+      min-height: 36px;
+      padding: 8px 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      color: #333;
+      text-align: right;
+      border-left: 4px solid transparent;
+      transition: border-color 0.2s;
+    }
+
+    #resultado.ok    { border-color: #34a853; color: #1e7e34; }
+    #resultado.error { border-color: #d93025; color: #c62828; }
+  </style>
+</head>
+<body>
+  <div class="calculator">
+    <h1>Calculadora</h1>
+    <input id="display" type="text" readonly placeholder="0">
+    <div class="buttons">
+      <button class="btn-num" onclick="append('7')">7</button>
+      <button class="btn-num" onclick="append('8')">8</button>
+      <button class="btn-num" onclick="append('9')">9</button>
+      <button class="btn-num" onclick="append('4')">4</button>
+      <button class="btn-num" onclick="append('5')">5</button>
+      <button class="btn-num" onclick="append('6')">6</button>
+      <button class="btn-num" onclick="append('1')">1</button>
+      <button class="btn-num" onclick="append('2')">2</button>
+      <button class="btn-num" onclick="append('3')">3</button>
+      <button class="btn-num" onclick="append('0')">0</button>
+      <button class="btn-op"  onclick="append('+')" style="grid-column: span 2;">+</button>
+      <button class="btn-equal" onclick="calcular()">=</button>
+      <button class="btn-clear" onclick="limpiar()">C</button>
+    </div>
+    <div id="resultado"></div>
+  </div>
+
+  <script>
+    const API_URL = "http://localhost:8000/sumar";
+    const display   = document.getElementById("display");
+    const resultado = document.getElementById("resultado");
+
+    const append  = (char) => { display.value += char; };
+    const limpiar = ()     => { display.value = ""; resultado.textContent = ""; resultado.className = ""; };
+
+    const mostrarResultado = (texto, tipo) => {
+      resultado.textContent = texto;
+      resultado.className = tipo;
+    };
+
+    async function calcular() {
+      if (!display.value.trim()) return mostrarResultado("Ingresa una expresión", "error");
+
+      try {
+        const res  = await fetch(API_URL, {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ dato: display.value }),
+        });
+        const data = await res.json();
+
+        res.ok
+          ? mostrarResultado(`= ${data.resultado}`, "ok")
+          : mostrarResultado(data.detail ?? "Error en el servidor", "error");
+      } catch {
+        mostrarResultado("No se pudo conectar con la API", "error");
+      }
+    }
+  </script>
+</body>
+</html>
