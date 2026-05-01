@@ -1,5 +1,6 @@
 pytest>=8.0
 pytest-playwright>=0.5
+pytest-html>=4.0
 httpx>=0.27
 # backend deps también son necesarios
 fastapi>=0.115

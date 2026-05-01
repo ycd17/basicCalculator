@@ -28,7 +28,7 @@
 
     h1 { font-size: 1.1rem; color: #333; text-align: center; }
 
-    #display {
+    #expresion {
       width: 100%;
       padding: 12px;
       font-size: 1.4rem;
@@ -75,67 +75,100 @@
       background: #f8f9fa;
       border-radius: 8px;
       font-size: 1.1rem;
-      color: #333;
+      color: #1e7e34;
       text-align: right;
       border-left: 4px solid transparent;
       transition: border-color 0.2s;
     }
 
-    #resultado.ok    { border-color: #34a853; color: #1e7e34; }
-    #resultado.error { border-color: #d93025; color: #c62828; }
+    #resultado.ok { border-color: #34a853; }
+
+    #mensaje-error {
+      min-height: 24px;
+      font-size: 0.9rem;
+      color: #c62828;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
   <div class="calculator">
     <h1>Calculadora</h1>
-    <input id="display" type="text" readonly placeholder="0">
+    <input id="expresion" type="text" readonly placeholder="0">
     <div class="buttons">
-      <button class="btn-num" onclick="append('7')">7</button>
-      <button class="btn-num" onclick="append('8')">8</button>
-      <button class="btn-num" onclick="append('9')">9</button>
-      <button class="btn-num" onclick="append('4')">4</button>
-      <button class="btn-num" onclick="append('5')">5</button>
-      <button class="btn-num" onclick="append('6')">6</button>
-      <button class="btn-num" onclick="append('1')">1</button>
-      <button class="btn-num" onclick="append('2')">2</button>
-      <button class="btn-num" onclick="append('3')">3</button>
-      <button class="btn-num" onclick="append('0')">0</button>
-      <button class="btn-op"  onclick="append('+')" style="grid-column: span 2;">+</button>
-      <button class="btn-equal" onclick="calcular()">=</button>
-      <button class="btn-clear" onclick="limpiar()">C</button>
+      <button class="btn-num" data-testid="btn-7" onclick="agregar('7')">7</button>
+      <button class="btn-num" data-testid="btn-8" onclick="agregar('8')">8</button>
+      <button class="btn-num" data-testid="btn-9" onclick="agregar('9')">9</button>
+      <button class="btn-num" data-testid="btn-4" onclick="agregar('4')">4</button>
+      <button class="btn-num" data-testid="btn-5" onclick="agregar('5')">5</button>
+      <button class="btn-num" data-testid="btn-6" onclick="agregar('6')">6</button>
+      <button class="btn-num" data-testid="btn-1" onclick="agregar('1')">1</button>
+      <button class="btn-num" data-testid="btn-2" onclick="agregar('2')">2</button>
+      <button class="btn-num" data-testid="btn-3" onclick="agregar('3')">3</button>
+      <button class="btn-num" data-testid="btn-0" onclick="agregar('0')">0</button>
+      <button class="btn-op"  data-testid="btn-mas" onclick="agregarSuma()" style="grid-column: span 2;">+</button>
+      <button class="btn-equal" data-testid="btn-igual" onclick="calcular()">=</button>
+      <button class="btn-clear" data-testid="btn-borrar" onclick="borrar()">C</button>
     </div>
     <div id="resultado"></div>
+    <p id="mensaje-error"></p>
   </div>
 
   <script>
-    const API_URL = "/sumar";
-    const display   = document.getElementById("display");
-    const resultado = document.getElementById("resultado");
+    const API_URL     = "/sumar";
+    const expresion   = document.getElementById("expresion");
+    const resultado   = document.getElementById("resultado");
+    const mensajeError = document.getElementById("mensaje-error");
 
-    const append  = (char) => { display.value += char; };
-    const limpiar = ()     => { display.value = ""; resultado.textContent = ""; resultado.className = ""; };
+    const formatNum = (n) => n % 1 === 0 ? String(Math.round(n)) : String(n);
 
-    const mostrarResultado = (texto, tipo) => {
-      resultado.textContent = texto;
-      resultado.className = tipo;
+    const agregar = (digito) => {
+      expresion.value += digito;
+      mensajeError.textContent = "";
+    };
+
+    const agregarSuma = () => {
+      if (!expresion.value.trim() || expresion.value.trimEnd().endsWith("+")) return;
+      expresion.value += " + ";
+      mensajeError.textContent = "";
+    };
+
+    const borrar = () => {
+      expresion.value = "";
+      resultado.textContent = "";
+      resultado.className = "";
+      mensajeError.textContent = "";
     };
 
     async function calcular() {
-      if (!display.value.trim()) return mostrarResultado("Ingresa una expresión", "error");
+      if (!expresion.value.trim()) {
+        resultado.textContent = "";
+        resultado.className = "";
+        mensajeError.textContent = "Ingresa una expresión";
+        return;
+      }
 
       try {
         const res  = await fetch(API_URL, {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify({ dato: display.value }),
+          body:    JSON.stringify({ dato: expresion.value }),
         });
         const data = await res.json();
 
-        res.ok
-          ? mostrarResultado(`= ${data.resultado}`, "ok")
-          : mostrarResultado(data.detail ?? "Error en el servidor", "error");
+        if (res.ok) {
+          resultado.textContent = `= ${formatNum(data.resultado)}`;
+          resultado.className   = "ok";
+          mensajeError.textContent = "";
+        } else {
+          resultado.textContent = "";
+          resultado.className   = "";
+          mensajeError.textContent = data.detail ?? "Error en el servidor";
+        }
       } catch {
-        mostrarResultado("No se pudo conectar con la API", "error");
+        resultado.textContent = "";
+        resultado.className   = "";
+        mensajeError.textContent = "No se pudo conectar con la API";
       }
     }
   </script>
