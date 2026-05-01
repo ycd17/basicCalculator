@@ -6,13 +6,22 @@ Aplicación de tres capas que permite construir expresiones de suma con los díg
 
 ```
 frontend/
-└── index.html          # Interfaz de usuario (HTML + CSS + JS vanilla)
+└── index.html              # Interfaz de usuario (HTML + CSS + JS vanilla)
 
 backend/
-├── main.py             # API FastAPI — capa de transporte HTTP
+├── main.py                 # API FastAPI — capa de transporte HTTP
 ├── services/
-│   └── calculator.py   # Lógica de negocio — parseo y suma
+│   └── calculator.py       # Lógica de negocio — parseo y suma
 └── requirements.txt
+
+tests/
+├── conftest.py             # Fixtures compartidos (servidor, cliente HTTP)
+├── unit/
+│   └── test_calculator.py  # Pruebas unitarias del servicio de suma
+├── api/
+│   └── test_api.py         # Pruebas de integración del endpoint HTTP
+└── e2e/
+    └── test_ui.py          # Pruebas end-to-end con Playwright
 ```
 
 ### Flujo de datos
@@ -43,7 +52,9 @@ backend/
 - Python 3.9+
 - Un navegador moderno (Chrome, Firefox, Edge)
 
-## Levantar el backend
+## Levantar la aplicación
+
+El backend sirve también el frontend — un solo comando levanta todo:
 
 ```bash
 cd backend
@@ -51,23 +62,11 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-La API queda disponible en `http://localhost:8000`.
-
-Documentación interactiva (Swagger): `http://localhost:8000/docs`
-
-## Levantar el frontend
-
-Abrir `frontend/index.html` directamente en el navegador:
-
-```bash
-# Opción A — doble clic en el archivo
-# Opción B — desde terminal
-start frontend/index.html          # Windows
-open  frontend/index.html          # macOS
-xdg-open frontend/index.html       # Linux
-```
-
-> El frontend apunta a `http://localhost:8000` — asegúrate de que el backend esté corriendo antes de presionar `=`.
+| URL | Qué es |
+|-----|--------|
+| `http://localhost:8000/` | Calculadora (frontend) |
+| `http://localhost:8000/sumar` | Endpoint de la API |
+| `http://localhost:8000/docs` | Documentación interactiva (Swagger) |
 
 ## Cómo usar la aplicación
 
@@ -90,6 +89,45 @@ curl -X POST http://localhost:8000/sumar \
 ```
 
 Con Swagger: abre `http://localhost:8000/docs`, usa el endpoint `POST /sumar`.
+
+## Pruebas automatizadas
+
+### Instalación
+
+```bash
+pip install -r requirements-test.txt
+playwright install chromium
+```
+
+### Ejecutar todas las pruebas
+
+> Asegúrate de que el puerto **8000** esté libre antes de correr los tests.
+
+```bash
+pytest
+```
+
+### Ejecutar por capa
+
+```bash
+pytest tests/unit   # Unitarias — sin servidor ni navegador
+pytest tests/api    # Integración — levanta API en :8000
+pytest tests/e2e    # E2E — levanta servidor en :8000, abre Chromium
+```
+
+### Servidores que gestiona pytest automáticamente
+
+| Puerto | Qué sirve | Fixture | Scope |
+|--------|-----------|---------|-------|
+| `8000` | API + frontend (mismo origen) | `backend_server` | sesión |
+
+### Cobertura de pruebas
+
+| Capa | Archivo | Qué verifica |
+|------|---------|-------------|
+| Unit | `test_calculator.py` | Parseo y suma correcta, errores con letras |
+| API  | `test_api.py` | Respuestas HTTP 200 / 400 / 422 por escenario |
+| E2E  | `test_ui.py` | Flujo completo en navegador: botones, resultado, limpiar, error |
 
 ## Casos de error
 

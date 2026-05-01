@@ -1,0 +1,7 @@
+pytest>=8.0
+pytest-playwright>=0.5
+httpx>=0.27
+# backend deps también son necesarios
+fastapi>=0.115
+uvicorn>=0.30
+pydantic>=2.0
