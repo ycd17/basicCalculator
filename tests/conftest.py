@@ -6,6 +6,7 @@ import threading
 import httpx
 import pytest
 import uvicorn
+from fastapi.testclient import TestClient
 
 _BACKEND_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend"))
 sys.path.insert(0, _BACKEND_PATH)
@@ -40,3 +41,9 @@ def api_client(backend_server):
 @pytest.fixture
 def frontend_url(backend_server):
     return f"{backend_server}/"
+
+
+@pytest.fixture(scope="session")
+def cliente_api():
+    with TestClient(app) as client:
+        yield client

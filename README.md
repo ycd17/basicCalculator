@@ -1,60 +1,48 @@
-# Calculadora 1-2
+# Calculadora — Proyecto de tres capas
 
-Aplicación de tres capas que permite construir expresiones de suma con los dígitos del `0` al `9`, evalúa la expresión a través de una API Python y muestra el resultado en el navegador.
+Aplicación web de suma. El usuario construye expresiones con dígitos y `+`, las envía a una API Python, y ve el resultado en pantalla.
 
-## Arquitectura
+---
 
-```
-frontend/
-└── index.html              # Interfaz de usuario (HTML + CSS + JS vanilla)
+## Estado actual del proyecto
 
-backend/
-├── main.py                 # API FastAPI — capa de transporte HTTP
-├── services/
-│   └── calculator.py       # Lógica de negocio — parseo y suma
-└── requirements.txt
+| Componente | Estado |
+|------------|--------|
+| Frontend (HTML + JS) | Completo |
+| Backend API (FastAPI) | Completo |
+| Pruebas Capa 1 — Unitarias | 33/33 passing |
+| Pruebas Capa 2 — API HTTP | 25/25 passing |
+| Pruebas Capa 3 — E2E Playwright | ⏳ Pendiente |
 
-tests/
-├── conftest.py             # Fixtures compartidos (servidor, cliente HTTP)
-├── unit/
-│   └── test_calculator.py  # Pruebas unitarias del servicio de suma
-├── api/
-│   └── test_api.py         # Pruebas de integración del endpoint HTTP
-└── e2e/
-    └── test_ui.py          # Pruebas end-to-end con Playwright
-```
+---
 
-### Flujo de datos
+## Estructura del proyecto
 
 ```
-[Usuario] → clic "=" → fetch POST /sumar {"dato":"112+21"}
-                                  ↓
-                        FastAPI valida el request
-                                  ↓
-                        calculator.sumar("112+21")
-                                  ↓
-                        {"resultado": 133}
-                                  ↓
-              [Navegador muestra "= 133"]
+clase/
+├── frontend/
+│   └── index.html              # UI: botones 0-9, +, =, C — JS vanilla
+│
+├── backend/
+│   ├── main.py                 # FastAPI: GET /salud, POST /sumar, sirve el frontend
+│   ├── services/
+│   │   └── calculator.py       # sumar(dato: str) -> float + ErrorExpresion
+│   └── requirements.txt
+│
+├── tests/
+│   ├── conftest.py             # Fixtures: backend_server (uvicorn :8001), api_client (httpx), cliente_api (TestClient)
+│   ├── test_capa1_backend.py   # Pruebas unitarias de sumar()
+│   ├── test_capa2_api.py       # Pruebas HTTP del endpoint con TestClient
+│   └── test_capa3_e2e.py       # Por crear — pruebas Playwright
+│
+├── requirements-test.txt
+├── pytest.ini
+└── README.md
 ```
 
-## Principios aplicados
+---
 
-| Principio | Aplicación |
-|-----------|-----------|
-| **SRP** | `calculator.py` solo hace la suma; `main.py` solo maneja HTTP |
-| **OCP** | Agregar nuevas operaciones no requiere modificar el endpoint existente |
-| **DI**  | El endpoint recibe el servicio como función pura, fácil de testear en aislamiento |
-| **Economía de código** | `sumar` resuelve parseo + suma en una sola línea con una comprensión |
-
-## Requisitos
-
-- Python 3.9+
-- Un navegador moderno (Chrome, Firefox, Edge)
-
-## Levantar la aplicación
-
-El backend sirve también el frontend — un solo comando levanta todo:
+## Cómo levantar la aplicación
 
 ```bash
 cd backend
@@ -62,77 +50,128 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-| URL | Qué es |
-|-----|--------|
-| `http://localhost:8000/` | Calculadora (frontend) |
-| `http://localhost:8000/sumar` | Endpoint de la API |
-| `http://localhost:8000/docs` | Documentación interactiva (Swagger) |
+| URL | Qué abre |
+|-----|----------|
+| `http://localhost:8000/` | Calculadora |
+| `http://localhost:8000/salud` | Health-check JSON |
+| `http://localhost:8000/docs` | Swagger / OpenAPI |
 
-## Cómo usar la aplicación
+---
 
-1. Presiona los botones **1** y **2** para ingresar dígitos (puedes formar números como `112`, `21`, `1`).
-2. Presiona **+** para agregar un operador de suma.
-3. Repite para agregar más operandos.
-4. Presiona **=** para enviar la expresión a la API y ver el resultado.
+## Cómo correr las pruebas
 
-**Ejemplo:** `112` → `+` → `21` → `+` → `2` → `=` → **= 135**
-
-## Probar la API directamente
-
-Con `curl`:
-
-```bash
-curl -X POST http://localhost:8000/sumar \
-     -H "Content-Type: application/json" \
-     -d '{"dato": "112+21+2"}'
-# → {"resultado": 135}
-```
-
-Con Swagger: abre `http://localhost:8000/docs`, usa el endpoint `POST /sumar`.
-
-## Pruebas automatizadas
-
-### Instalación
+### Primera vez (instalar dependencias)
 
 ```bash
 pip install -r requirements-test.txt
 playwright install chromium
 ```
 
-### Ejecutar todas las pruebas
-
-> Asegúrate de que el puerto **8000** esté libre antes de correr los tests.
+### Correr pruebas
 
 ```bash
-pytest
+pytest                              # todas las capas
+pytest tests/test_capa1_backend.py  # solo capa 1 (no necesita servidor)
+pytest tests/test_capa2_api.py      # solo capa 2 (no necesita servidor, usa TestClient)
 ```
 
-### Ejecutar por capa
+> La Capa 1 y la Capa 2 no necesitan un servidor corriendo — usan la función y el `TestClient` directamente.
+> La Capa 3 (Playwright) levanta el servidor automáticamente en el puerto **8001** para no chocar con el servidor de desarrollo en 8000.
 
-```bash
-pytest tests/unit   # Unitarias — sin servidor ni navegador
-pytest tests/api    # Integración — levanta API en :8000
-pytest tests/e2e    # E2E — levanta servidor en :8000, abre Chromium
+---
+
+## Fixtures disponibles en `conftest.py`
+
+| Fixture | Tipo | Cuándo usarlo |
+|---------|------|---------------|
+| `cliente_api` | `TestClient` (sin servidor) | Capa 2 — pruebas HTTP rápidas, no necesita uvicorn |
+| `backend_server` | uvicorn en `:8001` | Capa 3 — Playwright necesita un servidor real |
+| `api_client` | `httpx.Client` contra `:8001` | Alternativa HTTP con servidor real |
+| `frontend_url` | URL base `:8001` | Capa 3 — dirección del frontend para el browser |
+
+---
+
+## Detalle por capa de pruebas
+
+### Capa 1 — Unitarias `test_capa1_backend.py`
+
+Prueba `sumar()` directamente, sin HTTP ni navegador.
+
+**Técnicas aplicadas:** partición de equivalencia · análisis de valor límite · paramétricos
+
+| Grupo | IDs | Qué cubre |
+|-------|-----|-----------|
+| B-01 | 01–07 | Casos válidos: enteros, decimales, espacios, número único, cero |
+| B-02 | 01–02 | Límite de 200 chars: justo en el borde (válido) y borde+1 (inválido) |
+| B-03 | 01–11 | Inválidos: vacío, espacios, `++`, empieza/termina con `+`, `*`, `-`, letras, inyección, tipos `int` y `None` |
+| B-04 | — | 5 casos válidos + 5 inválidos paramétricos |
+| B-EX | 01–03 | `0.1+0.2 ≈ 0.3` (approx), número grande, decimal mal puesto (`3.`) |
+
+---
+
+### Capa 2 — API HTTP `test_capa2_api.py`
+
+Prueba el endpoint `POST /sumar` enviando peticiones HTTP reales con `TestClient` de FastAPI. No requiere levantar un servidor externo.
+
+**Técnicas aplicadas:** códigos de estado HTTP · validación de body y headers · paramétricos · casos de frontera del framework
+
+| Grupo | IDs | Entrada | HTTP esperado |
+|-------|-----|---------|---------------|
+| A-01 | 01 | `GET /salud` | `200` |
+| A-02 | 01–05 | Expresiones válidas | `200`, `resultado` es `float`, `Content-Type: application/json` |
+| A-03 | 01–04 | Expresión inválida (llega al backend) | `400` si vacía · `422` si no vacía |
+| A-04 | 01–04 | Body malformado (FastAPI lo rechaza antes del backend) | `422` · nunca `500` |
+| A-05 | — | 4 válidos + 5 inválidos paramétricos | `200` · `4xx` · nunca `500` |
+| A-EX | 01–02 | `dato: null` · campo extra en el body | nunca `500` · `200` (campo extra se ignora) |
+
+**Decisión de diseño importante — 400 vs 422 desde el backend:**
+
+```
+dato vacío o solo espacios  →  400 Bad Request      (no hay contenido que procesar)
+dato con caracteres inválidos →  422 Unprocessable Entity  (hay contenido, pero no se puede procesar)
+campo 'dato' ausente en JSON  →  422 Unprocessable Entity  (FastAPI/Pydantic, nunca llega al backend)
 ```
 
-### Servidores que gestiona pytest automáticamente
+Esta distinción está implementada en `backend/main.py`:
+```python
+status = 400 if not req.dato.strip() else 422
+```
 
-| Puerto | Qué sirve | Fixture | Scope |
-|--------|-----------|---------|-------|
-| `8000` | API + frontend (mismo origen) | `backend_server` | sesión |
+---
 
-### Cobertura de pruebas
+### Capa 3 — E2E Playwright `test_capa3_e2e.py`
 
-| Capa | Archivo | Qué verifica |
-|------|---------|-------------|
-| Unit | `test_calculator.py` | Parseo y suma correcta, errores con letras |
-| API  | `test_api.py` | Respuestas HTTP 200 / 400 / 422 por escenario |
-| E2E  | `test_ui.py` | Flujo completo en navegador: botones, resultado, limpiar, error |
+Prueba el flujo completo en Chromium: clic en botones → display → llamada API → resultado visible. Debe cubrir:
+- Dígitos y operador aparecen en el display
+- `=` muestra el resultado correcto
+- `C` limpia display y resultado
+- `=` con display vacío muestra error
 
-## Casos de error
+---
 
-| Situación | Respuesta |
-|-----------|-----------|
-| Campo vacío | `400 Bad Request` — "El campo dato no puede estar vacío" |
-| Caracteres no numéricos | `422 Unprocessable Entity` — "Formato inválido…" |
-| API no disponible | El frontend muestra "No se pudo conectar con la API" |
+## Lógica de `sumar()` — `backend/services/calculator.py`
+
+```
+sumar(dato: str) -> float
+  ├─ Valida que sea str                              → ErrorExpresion si no
+  ├─ Valida longitud ≤ 200                           → ErrorExpresion si supera
+  ├─ Valida no vacío                                 → ErrorExpresion si vacío
+  ├─ Valida solo dígitos, +, . y espacios            → ErrorExpresion si no
+  ├─ Valida no empieza/termina con +                 → ErrorExpresion si sí
+  └─ Valida formato de cada número (^\d+(\.\d+)?$)   → ErrorExpresion si falla
+```
+
+**No usa `eval()`** — divide por `+` y convierte cada parte a `float`, evitando ejecución de código arbitrario.
+
+---
+
+## Comportamiento HTTP del endpoint
+
+| Situación | Status |
+|-----------|--------|
+| `GET /salud` | `200 OK` + `{"estado": "ok"}` |
+| Expresión válida | `200 OK` + `{"resultado": float}` |
+| Expresión vacía o solo espacios | `400 Bad Request` |
+| Caracteres no permitidos, formato inválido, longitud > 200 | `422 Unprocessable Entity` |
+| Campo `dato` ausente, mal nombrado, o body vacío | `422 Unprocessable Entity` |
+| Cualquier situación bien manejada | nunca `500 Internal Server Error` |

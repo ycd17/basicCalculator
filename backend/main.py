@@ -25,5 +25,10 @@ def sumar_endpoint(req: SumaRequest) -> SumaResponse:
         raise HTTPException(status_code=status, detail=str(e))
 
 
+@app.get("/salud")
+def salud():
+    return {"estado": "ok"}
+
+
 _frontend = os.path.join(os.path.dirname(__file__), "..", "frontend")
 app.mount("/", StaticFiles(directory=_frontend, html=True), name="frontend")
