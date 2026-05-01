@@ -3,7 +3,7 @@ import os
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from services.calculator import sumar
+from services.calculator import sumar, ErrorExpresion
 
 app = FastAPI(title="Calculadora API")
 
@@ -13,17 +13,16 @@ class SumaRequest(BaseModel):
 
 
 class SumaResponse(BaseModel):
-    resultado: int
+    resultado: float
 
 
 @app.post("/sumar", response_model=SumaResponse)
 def sumar_endpoint(req: SumaRequest) -> SumaResponse:
-    if not req.dato.strip():
-        raise HTTPException(status_code=400, detail="El campo dato no puede estar vacío")
     try:
         return SumaResponse(resultado=sumar(req.dato))
-    except ValueError:
-        raise HTTPException(status_code=422, detail="Formato inválido: solo se permiten números separados por '+'")
+    except ErrorExpresion as e:
+        status = 400 if not req.dato.strip() else 422
+        raise HTTPException(status_code=status, detail=str(e))
 
 
 _frontend = os.path.join(os.path.dirname(__file__), "..", "frontend")
