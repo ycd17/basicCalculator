@@ -95,6 +95,34 @@ pytest tests/test_capa2_api.py     --html=reporte.html --self-contained-html
 pytest tests/test_capa3_e2e.py     --html=reporte.html --self-contained-html
 ```
 
+### Screenshots y videos (Capa 3)
+
+`pytest-playwright` captura evidencia visual automáticamente durante los tests E2E. El comportamiento está configurado en `pytest.ini`:
+
+| Modo | Comportamiento |
+|------|----------------|
+| `--screenshot=only-on-failure` | Pantallazo solo cuando un test falla *(por defecto)* |
+| `--screenshot=on` | Pantallazo al final de cada test |
+| `--video=retain-on-failure` | Video solo cuando un test falla *(por defecto)* |
+| `--video=on` | Video de todos los tests |
+
+Para capturar evidencia completa de toda la ejecución (por ejemplo, para entregar):
+
+```bash
+pytest tests/test_capa3_e2e.py --screenshot=on --video=on
+```
+
+Los archivos se guardan en `test-results/`, con una carpeta por test:
+
+```
+test-results/
+└── TestCalculo-test-E-03-01-flujo-3-mas-5-igual-8-chromium/
+    ├── test-finished.png   ← pantallazo
+    └── video.webm          ← video del test
+```
+
+> Los flags pasados por línea de comandos sobreescriben lo configurado en `pytest.ini`.
+
 ---
 
 ## Fixtures disponibles en `conftest.py`
@@ -164,7 +192,7 @@ Prueba el flujo completo en Chromium headless: clic en botones del navegador →
 
 #### Cómo funciona internamente
 
-El fixture `backend_server` (scope `session`) arranca uvicorn en `:8001` una sola vez para toda la sesión. El fixture `pagina` (scope `function`) abre un navegador Chromium nuevo, navega a `http://127.0.0.1:8001/` y lo cierra al terminar cada test, garantizando estado limpio.
+El fixture `backend_server` (scope `session`) arranca uvicorn en `:8001` una sola vez para toda la sesión. El fixture `pagina` envuelve el `page` nativo de `pytest-playwright`, que abre un Chromium headless nuevo por test, navega a `http://127.0.0.1:8001/` y lo cierra al terminar, garantizando estado limpio. Al usar el `page` del plugin, Playwright puede capturar screenshots y videos automáticamente según la configuración de `pytest.ini`.
 
 ```
 Test                     →  Playwright  →  Chromium  →  fetch POST /sumar  →  uvicorn :8001  →  sumar()

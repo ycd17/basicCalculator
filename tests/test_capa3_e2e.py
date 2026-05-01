@@ -6,12 +6,9 @@ import pytest
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
-def pagina(playwright, frontend_url):
-    browser = playwright.chromium.launch(headless=True)
-    page    = browser.new_context().new_page()
+def pagina(page, frontend_url):
     page.goto(frontend_url)
-    yield page
-    browser.close()
+    return page
 
 
 # ---------------------------------------------------------------------------
