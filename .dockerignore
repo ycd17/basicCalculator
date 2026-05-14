@@ -1,0 +1,11 @@
+.git
+.gitignore
+tests/
+requirements-test.txt
+pytest.ini
+reporte.html
+test-results/
+README.md
+**/__pycache__
+**/*.pyc
+**/*.pyo
